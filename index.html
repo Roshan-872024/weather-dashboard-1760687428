@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            justify-content: center;
+            align-items: center;
+        }
+        .weather-card {
+            width: 90%;
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="weather-card card shadow">
+    <div class="card-body">
+        <h5 class="card-title text-center">Weather Dashboard</h5>
+        <input type="text" id="city-input" class="form-control mb-3" placeholder="Enter city name" required>
+        <button id="get-weather" class="btn btn-primary w-100">Get Weather</button>
+        <div id="loading" class="text-center mt-2 d-none"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+        <div id="error-message" class="alert alert-danger mt-2 d-none text-center" role="alert"></div>
+        <div id="weather-info" class="mt-3 d-none">
+            <h6 class="card-subtitle mb-2 text-muted" id="city-name"></h6>
+            <p id="temperature"></p>
+            <p id="humidity"></p>
+            <p id="conditions"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const BASE_URL = "https://huggingface.co/spaces/Roshan0510/tds_project_1";
+
+    document.getElementById('get-weather').addEventListener('click', async () => {
+        const city = document.getElementById('city-input').value;
+        const loading = document.getElementById('loading');
+        const errorMessage = document.getElementById('error-message');
+        const weatherInfo = document.getElementById('weather-info');
+        const cityName = document.getElementById('city-name');
+        const temperature = document.getElementById('temperature');
+        const humidity = document.getElementById('humidity');
+        const conditions = document.getElementById('conditions');
+
+        loading.classList.remove('d-none');
+        weatherInfo.classList.add('d-none');
+        errorMessage.classList.add('d-none');
+
+        if (!city) {
+            errorMessage.innerText = 'Please enter a valid city name.';
+            errorMessage.classList.remove('d-none');
+            loading.classList.add('d-none');
+            return;
+        }
+
+        try {
+            const geoURL = `https://huggingface.co/spaces/Roshan0510/tds_project_1/search?name=${encodeURIComponent(city)}`;
+            const res = await fetch(`${BASE_URL}/fetch?url=${encodeURIComponent(geoURL)}`);
+            const data = await res.json();
+
+            if (data && data.results && data.results.length > 0) {
+                const lat = data.results[0].latitude;
+                const lon = data.results[0].longitude;
+
+                const weatherURL = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
+                const weatherRes = await fetch(`${BASE_URL}/fetch?url=${encodeURIComponent(weatherURL)}`);
+                const weatherData = await weatherRes.json();
+
+                if (weatherData && weatherData.current_weather) {
+                    cityName.innerText = `${data.results[0].name}, ${data.results[0].country}`;
+                    temperature.innerText = `Temperature: ${weatherData.current_weather.temperature} °C`;
+                    humidity.innerText = `Humidity: ${weatherData.current_weather.humidity}%`;
+                    conditions.innerText = `Conditions: ${weatherData.current_weather.weathercode}`; // Use code for proper icon implementation if needed
+
+                    weatherInfo.classList.remove('d-none');
+                }
+            } else {
+                throw new Error('City not found');
+            }
+        } catch (error) {
+            errorMessage.innerText = 'Failed to fetch weather data. Please try again later.';
+            errorMessage.classList.remove('d-none');
+        } finally {
+            loading.classList.add('d-none');
+        }
+    });
+</script>
+
+</body>
+</html>
